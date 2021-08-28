@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
-	"log"
+	"fmt"
 
 	"github.com/TechBowl-japan/go-stations/model"
 )
@@ -22,32 +22,29 @@ func NewTODOService(db *sql.DB) *TODOService {
 
 // CreateTODO creates a TODO on DB.
 func (s *TODOService) CreateTODO(ctx context.Context, subject, description string) (*model.TODO, error) {
+	fmt.Println("start")
 	const (
 		insert  = `INSERT INTO todos(subject, description) VALUES(?, ?)`
 		confirm = `SELECT subject, description, created_at, updated_at FROM todos WHERE id = ?`
 	)
 	todo := &model.TODO{}
-	if len(subject) == 0 {
-		log.Fatal("subject = ''")
-	}
 
 	// 登録
 	result, err := s.db.ExecContext(ctx, insert, subject, description)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// 登録したID取得
 	id, err := result.LastInsertId()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	todo.ID = int(id)
 
 	// 登録したデータを1行取得
 	err = s.db.QueryRowContext(ctx, confirm, id).Scan(&todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	return todo, err
