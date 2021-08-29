@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 
 	"github.com/TechBowl-japan/go-stations/model"
 	"github.com/TechBowl-japan/go-stations/service"
@@ -21,8 +23,13 @@ func NewTODOHandler(svc *service.TODOService) *TODOHandler {
 
 // Create handles the endpoint that creates the TODO.
 func (h *TODOHandler) Create(ctx context.Context, req *model.CreateTODORequest) (*model.CreateTODOResponse, error) {
-	_, _ = h.svc.CreateTODO(ctx, "", "")
-	return &model.CreateTODOResponse{}, nil
+	todo, err := h.svc.CreateTODO(ctx, req.Subject, req.Description)
+	if err != nil {
+		return nil, err
+	}
+	response := &model.CreateTODOResponse{}
+	response.TODO = *todo
+	return response, err
 }
 
 // Read handles the endpoint that reads the TODOs.
@@ -41,4 +48,26 @@ func (h *TODOHandler) Update(ctx context.Context, req *model.UpdateTODORequest) 
 func (h *TODOHandler) Delete(ctx context.Context, req *model.DeleteTODORequest) (*model.DeleteTODOResponse, error) {
 	_ = h.svc.DeleteTODO(ctx, nil)
 	return &model.DeleteTODOResponse{}, nil
+}
+
+func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method == http.MethodPost {
+		// RequestBodtのJSON化
+		request := &model.CreateTODORequest{}
+		json.NewDecoder(r.Body).Decode(request)
+
+		if len(request.Subject) == 0 {
+			// Subjectが空の場合
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		response, err := h.Create(r.Context(), request)
+		if err != nil {
+			// Serviceでエラーが起きた場合
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(response)
+	}
 }
