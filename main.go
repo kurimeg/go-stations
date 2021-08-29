@@ -53,7 +53,7 @@ func realMain() error {
 	mux := http.NewServeMux()
 
 	// TODO: ここから実装を行う
-	mux.Handle("/healthz", &handler.HealthzHandler{})
+	mux.Handle("/healthz", handler.NewHealthzHandler())
 	mux.Handle("/todos", handler.NewTODOHandler(service.NewTODOService(todoDB)))
 	http.ListenAndServe(port, mux)
 	return nil
